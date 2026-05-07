@@ -31,6 +31,26 @@ namespace Content.Shared.Decals
             SubscribeLocalEvent<GridInitializeEvent>(OnGridInitialize);
             SubscribeLocalEvent<DecalGridComponent, ComponentStartup>(OnCompStartup);
             SubscribeLocalEvent<DecalGridComponent, ComponentGetState>(OnGetState);
+            SubscribeLocalEvent<PrototypesReloadedEventArgs>(OnPrototypesReloaded);
+        }
+
+        private void OnPrototypesReloaded(PrototypesReloadedEventArgs args)
+        {
+            // Decal prototype set changed — invalidate net id table so it rebuilds with new ordering.
+            // Clients/servers always rebuild on first access, so we just drop the cache here.
+            if (!args.WasModified<DecalPrototype>())
+                return;
+
+            _decalProtoToNet = null;
+            _decalNetToProto = null;
+            OnDecalPrototypesReloaded(args);
+        }
+
+        /// <summary>
+        ///     Hook for derived systems to reset their own per-prototype caches when DecalPrototype changes.
+        /// </summary>
+        protected virtual void OnDecalPrototypesReloaded(PrototypesReloadedEventArgs args)
+        {
         }
 
         private void OnGetState(EntityUid uid, DecalGridComponent component, ref ComponentGetState args)
@@ -130,13 +150,61 @@ namespace Content.Shared.Decals
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         protected static ushort QuantizeDecalCoord(float value)
         {
-            return (ushort) Math.Clamp((int) MathF.Round(value * DecalCoordQuantScale), 0, ushort.MaxValue);
+            // Decals are stored chunk-relative, so values should be in [0, ChunkSize). Clamp defensively in case of
+            // floating-point drift right at chunk boundaries — the result still fits well inside ushort range.
+            var scaled = (int) MathF.Round(value * DecalCoordQuantScale);
+            return (ushort) Math.Clamp(scaled, 0, ushort.MaxValue);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         protected static float DequantizeDecalCoord(ushort quantized)
         {
             return quantized / DecalCoordQuantScale;
+        }
+
+        /// <summary>
+        ///     Compares two snapshots of a chunk's decals and produces the upsert/remove sets needed to bring the
+        ///     "previous" snapshot in sync with "current". Pure function; safe to call from tests.
+        /// </summary>
+        /// <remarks>
+        ///     Pass <c>null</c> for <paramref name="previous"/> if this is the first time this chunk is being sent
+        ///     to the recipient; the caller can then mark the resulting delta as <c>ResetChunk = true</c>.
+        /// </remarks>
+        public static void DiffDecalSnapshots(
+            Dictionary<uint, NetDecalData> current,
+            Dictionary<uint, NetDecalData>? previous,
+            Dictionary<uint, NetDecalData> upserts,
+            List<uint> removed)
+        {
+            foreach (var (id, net) in current)
+            {
+                if (previous == null
+                    || !previous.TryGetValue(id, out var old)
+                    || !NetDecalEquals(old, net))
+                {
+                    upserts[id] = net;
+                }
+            }
+
+            if (previous == null)
+                return;
+
+            foreach (var id in previous.Keys)
+            {
+                if (!current.ContainsKey(id))
+                    removed.Add(id);
+            }
+        }
+
+        public static bool NetDecalEquals(NetDecalData a, NetDecalData b)
+        {
+            return a.RelX == b.RelX
+                   && a.RelY == b.RelY
+                   && a.PrototypeNetId == b.PrototypeNetId
+                   && a.Color == b.Color
+                   && a.Angle == b.Angle
+                   && a.ZIndex == b.ZIndex
+                   && a.Cleanable == b.Cleanable;
         }
 
         // internal, so that client/predicted code doesn't accidentally remove decals. There is a public server-side function.

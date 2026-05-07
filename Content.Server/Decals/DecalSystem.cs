@@ -48,6 +48,8 @@ namespace Content.Server.Decals
         private UpdatePlayerJob _updateJob;
         private List<ICommonSession> _sessions = new();
 
+        private int _maxDecalsPerChunk = 512;
+
         private static readonly ThreadLocal<ObjectPool<HashSet<Vector2i>>> ChunkIndexPool = // Forge-Change
             new(() => new DefaultObjectPool<HashSet<Vector2i>>( // Forge-Change
                 new DefaultPooledObjectPolicy<HashSet<Vector2i>>(), 64)); // Forge-Change
@@ -74,6 +76,7 @@ namespace Content.Server.Decals
             SubscribeLocalEvent<PostGridSplitEvent>(OnGridSplit);
 
             Subs.CVar(_conf, CVars.NetPVS, OnPvsToggle, true);
+            Subs.CVar(_conf, Content.Shared.CCVar.CCVars.DecalsMaxPerChunk, v => _maxDecalsPerChunk = v, true);
         }
 
         private void OnPvsToggle(bool value)
@@ -292,6 +295,33 @@ namespace Content.Server.Decals
             _dirtyChunks[id].Add(chunkIndices);
         }
 
+        /// <summary>
+        ///     Removes oldest decals (lowest id) in the chunk until under the server decals.max_per_chunk limit,
+        ///     so a new placement can be added without exceeding the budget.
+        /// </summary>
+        private void TrimChunkDecals(EntityUid gridUid, DecalGridComponent comp, Vector2i chunkIndices)
+        {
+            var max = _maxDecalsPerChunk;
+            if (max <= 0)
+                return;
+
+            while (comp.ChunkCollection.ChunkCollection.TryGetValue(chunkIndices, out var chunk)
+                   && chunk.Decals.Count >= max)
+            {
+                uint minId = uint.MaxValue;
+                foreach (var existingId in chunk.Decals.Keys)
+                {
+                    if (existingId < minId)
+                        minId = existingId;
+                }
+
+                if (minId == uint.MaxValue)
+                    break;
+
+                RemoveDecalInternal(gridUid, minId, out _, comp);
+            }
+        }
+
         public bool TryAddDecal(string id, EntityCoordinates coordinates, out uint decalId, Color? color = null, Angle? rotation = null, int zIndex = 0, bool cleanable = false)
         {
             rotation ??= Angle.Zero;
@@ -318,6 +348,8 @@ namespace Content.Server.Decals
                 return false;
 
             var chunkIndices = GetChunkIndices(decal.Coordinates);
+            TrimChunkDecals(gridId.Value, comp, chunkIndices);
+
             var chunk = comp.ChunkCollection.ChunkCollection.GetOrNew(chunkIndices);
 
             decalId = comp.ChunkCollection.NextDecalId++;
@@ -438,34 +470,30 @@ namespace Content.Server.Decals
 
             if (!PvsEnabled)
             {
+                // Legacy non-PVS path: rely on component-state replication. Mark dirty grids for the engine to sync.
                 foreach (var ent in _dirtyChunks.Keys)
                 {
                     if (TryGetEntity(ent, out var uid) && TryComp(uid, out DecalGridComponent? decals))
                         Dirty(uid.Value, decals);
                 }
-            }
 
-            if (!PvsEnabled)
-            {
                 _dirtyChunks.Clear();
                 return;
             }
 
-            if (PvsEnabled)
+            // PVS-enabled path: ship per-player chunk deltas via DecalChunkUpdateEvent.
+            _sessions.Clear();
+
+            foreach (var session in _playerManager.Sessions)
             {
-                _sessions.Clear();
+                if (session.Status != SessionStatus.InGame)
+                    continue;
 
-                foreach (var session in _playerManager.Sessions)
-                {
-                    if (session.Status != SessionStatus.InGame)
-                        continue;
-
-                    _sessions.Add(session);
-                }
-
-                if (_sessions.Count > 0)
-                    _parMan.ProcessNow(_updateJob, _sessions.Count);
+                _sessions.Add(session);
             }
+
+            if (_sessions.Count > 0)
+                _parMan.ProcessNow(_updateJob, _sessions.Count);
 
             _dirtyChunks.Clear();
         }
@@ -663,33 +691,22 @@ namespace Content.Server.Decals
             Dictionary<Vector2i, Dictionary<uint, NetDecalData>> previousGridData)
         {
             var hasPrevious = previousGridData.TryGetValue(chunkIndices, out var previousChunkData);
-            previousChunkData ??= new Dictionary<uint, NetDecalData>();
             var currentChunkData = new Dictionary<uint, NetDecalData>(chunk.Decals.Count);
-            var upserts = new Dictionary<uint, NetDecalData>();
-            var removed = new List<uint>();
-
             foreach (var (id, decal) in chunk.Decals)
             {
-                var net = ToNetDecalData(chunkIndices, decal);
-                currentChunkData[id] = net;
-
-                if (!hasPrevious || !previousChunkData.TryGetValue(id, out var old) || !NetDecalEquals(old, net))
-                    upserts[id] = net;
+                currentChunkData[id] = ToNetDecalData(chunkIndices, decal);
             }
 
-            if (hasPrevious)
-            {
-                foreach (var id in previousChunkData.Keys)
-                {
-                    if (!currentChunkData.ContainsKey(id))
-                        removed.Add(id);
-                }
-            }
-
+            // Always update the snapshot to current state, even if we end up not sending a delta.
+            // That keeps the next diff honest if anything else changes the chunk later.
             previousGridData[chunkIndices] = currentChunkData;
 
             if (!hasPrevious && currentChunkData.Count == 0)
                 return null;
+
+            var upserts = new Dictionary<uint, NetDecalData>();
+            var removed = new List<uint>();
+            DiffDecalSnapshots(currentChunkData, hasPrevious ? previousChunkData : null, upserts, removed);
 
             if (upserts.Count == 0 && removed.Count == 0)
                 return null;
@@ -717,17 +734,6 @@ namespace Content.Server.Decals
                 ZIndex = decal.ZIndex,
                 Cleanable = decal.Cleanable
             };
-        }
-
-        private static bool NetDecalEquals(NetDecalData a, NetDecalData b)
-        {
-            return a.RelX == b.RelX &&
-                   a.RelY == b.RelY &&
-                   a.PrototypeNetId == b.PrototypeNetId &&
-                   a.Color == b.Color &&
-                   a.Angle == b.Angle &&
-                   a.ZIndex == b.ZIndex &&
-                   a.Cleanable == b.Cleanable;
         }
 
         /// <summary>

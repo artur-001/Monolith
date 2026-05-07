@@ -71,6 +71,15 @@ public sealed class DecalOverlay : GridOverlay
         }
     }
 
+    /// <summary>
+    ///     Drops every prepared chunk so cap/dedup settings or prototype reloads take effect on the next draw.
+    /// </summary>
+    public void ClearPreparedCache()
+    {
+        _preparedChunks.Clear();
+        _cachedTextures.Clear();
+    }
+
     protected override void Draw(in OverlayDrawArgs args)
     {
         if (args.MapId == MapId.Nullspace)

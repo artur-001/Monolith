@@ -13,8 +13,6 @@ namespace Content.Client.Decals
 {
     public sealed class DecalSystem : SharedDecalSystem
     {
-        private const int TileDecalLimit = 16;
-
         [Dependency] private readonly IOverlayManager _overlayManager = default!;
         [Dependency] private readonly SpriteSystem _sprites = default!;
         [Dependency] private readonly IConfigurationManager _cfg = default!;
@@ -29,14 +27,24 @@ namespace Content.Client.Decals
             base.Initialize();
 
             _overlay = new DecalOverlay(_sprites, EntityManager, PrototypeManager);
-            _overlay.MaxPerTileDraw = TileDecalLimit;
+            _overlay.MaxPerTileDraw = _cfg.GetCVar(CCVars.DecalsMaxPerTile);
             _overlay.RemoveIdenticalDuplicates = _cfg.GetCVar(CCVars.DecalsClientDeduplicateIdentical);
             _overlayManager.AddOverlay(_overlay);
 
+            Subs.CVar(_cfg, CCVars.DecalsMaxPerTile, v =>
+            {
+                if (_overlay == null)
+                    return;
+                _overlay.MaxPerTileDraw = v;
+                _overlay.ClearPreparedCache();
+            }, true);
+
             Subs.CVar(_cfg, CCVars.DecalsClientDeduplicateIdentical, v =>
             {
-                if (_overlay != null)
-                    _overlay.RemoveIdenticalDuplicates = v;
+                if (_overlay == null)
+                    return;
+                _overlay.RemoveIdenticalDuplicates = v;
+                _overlay.ClearPreparedCache();
             }, true);
 
             SubscribeLocalEvent<DecalGridComponent, ComponentHandleState>(OnHandleState);
@@ -66,6 +74,12 @@ namespace Content.Client.Decals
                 return;
 
             _overlayManager.RemoveOverlay(_overlay);
+        }
+
+        protected override void OnDecalPrototypesReloaded(Robust.Shared.Prototypes.PrototypesReloadedEventArgs args)
+        {
+            // Sprite paths or snap-cardinals flags may have changed — clear the overlay caches.
+            _overlay?.ClearPreparedCache();
         }
 
         protected override void OnDecalRemoved(EntityUid gridId, uint decalId, DecalGridComponent component, Vector2i indices, DecalChunk chunk)
