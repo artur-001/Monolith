@@ -20902,3 +20902,12 @@ Entries:
   id: 2302
   time: '2026-05-06T22:28:08.0000000+00:00'
   url: https://github.com/Monolith-Station/Monolith/pull/3962
+- author: Onezero0
+  changes:
+    - type: Tweak
+      message: >-
+        Nerfed the Draupnir; It now fires in 25-round bursts, with a 3 second
+        cooldown between bursts.
+  id: 2303
+  time: '2026-05-07T00:48:17.0000000+00:00'
+  url: https://github.com/Monolith-Station/Monolith/pull/3960
