@@ -23,6 +23,20 @@ public sealed partial class MonoCVars
         CVarDef.Create("mono.cleanup.log", true, CVar.SERVERONLY);
 
     /// <summary>
+    ///     Hard cap on how many entities a cleanup system may check/delete in a single tick.
+    ///     Prevents catch-up loops after long pauses from causing micro-spikes.
+    /// </summary>
+    public static readonly CVarDef<int> CleanupMaxChecksPerTick =
+        CVarDef.Create("mono.cleanup.max_checks_per_tick", 16, CVar.SERVERONLY);
+
+    /// <summary>
+    ///     How often, in seconds, to run the safety sweep that reconciles missing
+    ///     <c>SpaceCleanupTargetComponent</c> markers across all physics entities.
+    /// </summary>
+    public static readonly CVarDef<float> CleanupTargetSafetyScanSeconds =
+        CVarDef.Create("mono.cleanup.target_safety_scan_seconds", 900f, CVar.SERVERONLY);
+
+    /// <summary>
     ///     Don't delete non-grids at most this close to a grid.
     /// </summary>
     public static readonly CVarDef<float> CleanupMaxGridDistance =

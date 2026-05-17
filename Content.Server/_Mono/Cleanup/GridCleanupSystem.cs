@@ -14,7 +14,6 @@ namespace Content.Server._Mono.Cleanup;
 /// </summary>
 public sealed class GridCleanupSystem : BaseCleanupSystem<MapGridComponent>
 {
-    [Dependency] private readonly CleanupHelperSystem _cleanup = default!;
     [Dependency] private readonly EntityLookupSystem _lookup = default!;
     [Dependency] private readonly IConfigurationManager _cfg = default!;
     [Dependency] private readonly PricingSystem _pricing = default!;
@@ -29,6 +28,9 @@ public sealed class GridCleanupSystem : BaseCleanupSystem<MapGridComponent>
 
     private EntityQuery<BatteryComponent> _batteryQuery;
     private EntityQuery<CleanupImmuneComponent> _immuneQuery;
+    private EntityQuery<MapComponent> _mapCompQuery;
+    private EntityQuery<MapGridComponent> _gridQuery;
+    private EntityQuery<TransformComponent> _xformQuery;
 
     public override void Initialize()
     {
@@ -36,11 +38,33 @@ public sealed class GridCleanupSystem : BaseCleanupSystem<MapGridComponent>
 
         _batteryQuery = GetEntityQuery<BatteryComponent>();
         _immuneQuery = GetEntityQuery<CleanupImmuneComponent>();
+        _mapCompQuery = GetEntityQuery<MapComponent>();
+        _gridQuery = GetEntityQuery<MapGridComponent>();
+        _xformQuery = GetEntityQuery<TransformComponent>();
 
         Subs.CVar(_cfg, MonoCVars.GridCleanupDistance, val => _maxDistance = val, true);
         Subs.CVar(_cfg, MonoCVars.GridCleanupMaxValue, val => _maxValue = val, true);
         Subs.CVar(_cfg, MonoCVars.GridCleanupDuration, val => _duration = TimeSpan.FromSeconds(val), true);
         Subs.CVar(_cfg, MonoCVars.GridCleanupAggressiveTiles, val => _aggressiveTiles = val, true);
+    }
+
+    /// <summary>
+    ///     Forge-Change: cheap pre-filter so the scan does not enqueue planetmap grids,
+    ///     grids parented to a planetmap, or immune grids. Cuts the candidate queue down
+    ///     to actual abandoned-grid candidates before the expensive per-item checks run.
+    /// </summary>
+    protected override bool ShouldEnqueue(EntityUid uid)
+    {
+        if (_immuneQuery.HasComp(uid) || _mapCompQuery.HasComp(uid))
+            return false;
+
+        if (!_xformQuery.TryGetComponent(uid, out var xform))
+            return false;
+
+        if (_gridQuery.HasComp(xform.ParentUid))
+            return false;
+
+        return true;
     }
 
     protected override bool ShouldEntityCleanup(EntityUid uid)
@@ -49,8 +73,6 @@ public sealed class GridCleanupSystem : BaseCleanupSystem<MapGridComponent>
         // if we somehow lost it
         if (!TryComp<MapGridComponent>(uid, out var grid) || !TryComp<PhysicsComponent>(uid, out var body))
             return false;
-
-        var parent = xform.ParentUid;
 
         var state = EnsureComp<GridCleanupGridComponent>(uid);
 
@@ -64,11 +86,8 @@ public sealed class GridCleanupSystem : BaseCleanupSystem<MapGridComponent>
 
         var scale = MathF.Min(tiles / _aggressiveTiles, 1f);
 
-        if (HasComp<MapComponent>(uid) // if we're a planetmap ignore
-            || HasComp<MapGridComponent>(parent) // do not delete anything on planetmaps either
-            || _immuneQuery.HasComp(uid)
-            || !state.IgnoreIFF && TryComp<IFFComponent>(uid, out var iff) && (iff.Flags & IFFFlags.HideLabel) == 0 // delete only if IFF off
-            || _cleanup.HasNearbyPlayers(xform.Coordinates, state.DistanceOverride ?? _maxDistance * scale * scale) // square it
+        if (!state.IgnoreIFF && TryComp<IFFComponent>(uid, out var iff) && (iff.Flags & IFFFlags.HideLabel) == 0 // delete only if IFF off
+            || CleanupHelper.HasNearbyPlayers(xform.Coordinates, state.DistanceOverride ?? _maxDistance * scale * scale) // square it
             || !state.IgnorePowered && HasPoweredAPC((uid, xform)) // don't delete if it has powered APCs
             || !state.IgnorePrice && _pricing.AppraiseGrid(uid) > _maxValue) // expensive to run, put last
         {
