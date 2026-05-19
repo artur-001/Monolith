@@ -21172,3 +21172,14 @@ Entries:
   id: 2333
   time: '2026-05-19T00:10:17.0000000+00:00'
   url: https://github.com/Monolith-Station/Monolith/pull/3896
+- author: kasature90
+  changes:
+    - type: Add
+      message: >-
+        Basic attachments system with suppressors, optics, and grips. So far,
+        only supports Bandit, Ratel, AK-502, AK-410, MR-8C, Drozd, Lecter, Big
+        Johnny, M-90, WSPR, Annie, Vector(s), and MLA-73. Print roundstart at
+        military lathes for a small cost.
+  id: 2334
+  time: '2026-05-19T10:02:16.0000000+00:00'
+  url: https://github.com/Monolith-Station/Monolith/pull/3989
