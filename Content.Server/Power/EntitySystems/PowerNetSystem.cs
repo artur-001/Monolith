@@ -20,38 +20,13 @@ namespace Content.Server.Power.EntitySystems
     ///     Manages power networks, power state, and all power components.
     /// </summary>
     [UsedImplicitly]
-    public sealed class PowerNetSystem : SharedPowerNetSystem
+    public sealed partial class PowerNetSystem : SharedPowerNetSystem
     {
-        // Forge-Change-start
-        private static readonly Gauge PowerNetworkCountGauge = Metrics.CreateGauge(
-            "power_network_count",
-            "Number of pow3r networks.");
-
-        private static readonly Gauge PowerLoadCountGauge = Metrics.CreateGauge(
-            "power_load_count",
-            "Number of pow3r loads.");
-
-        private static readonly Gauge PowerSupplyCountGauge = Metrics.CreateGauge(
-            "power_supply_count",
-            "Number of pow3r supplies.");
-
-        private static readonly Gauge PowerBatteryCountGauge = Metrics.CreateGauge(
-            "power_battery_count",
-            "Number of pow3r batteries.");
-
-        private static readonly Gauge PowerDirtyLoadsGauge = Metrics.CreateGauge(
-            "power_dirty_loads_last_tick",
-            "Number of pow3r loads that changed on the last solver tick.");
-
-        private static readonly Gauge PowerDirtyBatteriesGauge = Metrics.CreateGauge(
-            "power_dirty_batteries_last_tick",
-            "Number of pow3r batteries that changed on the last solver tick.");
-        // Forge-Change-end
-        [Dependency] private readonly AppearanceSystem _appearance = default!;
-        [Dependency] private readonly PowerNetConnectorSystem _powerNetConnector = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IParallelManager _parMan = default!;
-        [Dependency] private readonly BatterySystem _battery = default!;
+        [Dependency] private AppearanceSystem _appearance = default!;
+        [Dependency] private PowerNetConnectorSystem _powerNetConnector = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IParallelManager _parMan = default!;
+        [Dependency] private BatterySystem _battery = default!;
 
         private readonly PowerState _powerState = new();
         private readonly HashSet<PowerNet> _powerNetReconnectQueue = new();
@@ -414,29 +389,25 @@ namespace Content.Server.Power.EntitySystems
             _powerNetReconnectQueue.Clear();
         }
 
-        // Forge-Change-start
-        private void UpdateApcPowerReceivers(float frameTime)
+        private bool IsPoweredCalculate(ApcPowerReceiverComponent comp)
+        {
+            return !comp.PowerDisabled
+                   && (!comp.NeedsPower
+                       || MathHelper.CloseToPercent(comp.NetworkLoad.ReceivingPower,
+                           comp.Load));
+        }
+
+        public override bool IsPoweredCalculate(SharedApcPowerReceiverComponent comp)
+        {
+            return IsPoweredCalculate((ApcPowerReceiverComponent)comp);
+        }
+
+        private void UpdateApcPowerReceiver(float frameTime)
         {
             _apcProcessBuffer.Clear();
             _apcProcessBuffer.AddRange(_dirtyApcReceivers);
             foreach (var uid in _activeApcBatteryReceivers)
             {
-                if (_dirtyApcReceivers.Contains(uid))
-                    continue;
-
-                _apcProcessBuffer.Add(uid);
-            }
-
-            _dirtyApcReceivers.Clear();
-
-            foreach (var uid in _apcProcessBuffer)
-            {
-                if (!TryComp(uid, out ApcPowerReceiverComponent? apcReceiver))
-                {
-                    _activeApcBatteryReceivers.Remove(uid);
-                    continue;
-                }
-
                 var powered = IsPoweredCalculate(apcReceiver);
 
                 MetaDataComponent? metadata = null;
@@ -503,13 +474,6 @@ namespace Content.Server.Power.EntitySystems
 
                 var ev = new PowerChangedEvent(powered, apcReceiver.NetworkLoad.ReceivingPower);
                 RaiseLocalEvent(uid, ref ev);
-
-                _appearance.SetData(uid, PowerDeviceVisuals.Powered, powered);
-
-                if (needsBatteryTick)
-                    _activeApcBatteryReceivers.Add(uid);
-                else
-                    _activeApcBatteryReceivers.Remove(uid);
             }
         }
 

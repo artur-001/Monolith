@@ -28,13 +28,12 @@ public sealed partial class ShipShieldsSystem : EntitySystem
 
     //private const float DeflectionSpread = 25f;
 
-    [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-    [Dependency] private readonly FixtureSystem _fixtureSystem = default!;
-    [Dependency] private readonly PhysicsSystem _physicsSystem = default!;
-    // Forge-Change: ShuttleConsoleSystem/FireControlSystem/PvsOverrideSystem deps removed — shield state
-    // replicates via component dirtying and the bubble relies on standard PVS instead of a global override.
-    [Dependency] private readonly StationSystem _station = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private SharedTransformSystem _transformSystem = default!;
+    [Dependency] private FixtureSystem _fixtureSystem = default!;
+    [Dependency] private PhysicsSystem _physicsSystem = default!;
+    [Dependency] private PvsOverrideSystem _pvsSys = default!;
+    [Dependency] private readonly StationSystem _station = default!; // Forge-Change
+    [Dependency] private readonly SharedAudioSystem _audio = default!; // Forge-Change
     [Dependency] private readonly IGameTiming _timing = default!; // Forge-Change
 
     private EntityQuery<ProjectileComponent> _projectileQuery;

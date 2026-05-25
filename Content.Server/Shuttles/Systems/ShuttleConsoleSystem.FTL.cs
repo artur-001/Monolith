@@ -17,8 +17,8 @@ namespace Content.Server.Shuttles.Systems;
 
 public sealed partial class ShuttleConsoleSystem
 {
-    [Dependency] private readonly IMapManager _mapManager = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private IMapManager _mapManager = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
 
     private readonly List<ShuttleBeaconObject> _beaconCache = new();
     private readonly List<ShuttleExclusionObject> _exclusionCache = new();

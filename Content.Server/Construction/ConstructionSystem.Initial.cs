@@ -26,14 +26,14 @@ namespace Content.Server.Construction
 {
     public sealed partial class ConstructionSystem
     {
-        [Dependency] private readonly IComponentFactory _factory = default!;
-        [Dependency] private readonly InventorySystem _inventorySystem = default!;
-        [Dependency] private readonly SharedInteractionSystem _interactionSystem = default!;
-        [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-        [Dependency] private readonly SharedHandsSystem _handsSystem = default!;
-        [Dependency] private readonly EntityLookupSystem _lookupSystem = default!;
-        [Dependency] private readonly SharedTransformSystem _transformSystem = default!;
-        [Dependency] private readonly EntityWhitelistSystem _whitelistSystem = default!;
+        [Dependency] private IComponentFactory _factory = default!;
+        [Dependency] private InventorySystem _inventorySystem = default!;
+        [Dependency] private SharedInteractionSystem _interactionSystem = default!;
+        [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+        [Dependency] private SharedHandsSystem _handsSystem = default!;
+        [Dependency] private EntityLookupSystem _lookupSystem = default!;
+        [Dependency] private SharedTransformSystem _transformSystem = default!;
+        [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
         // --- WARNING! LEGACY CODE AHEAD! ---
         // This entire file contains the legacy code for initial construction.
@@ -504,9 +504,35 @@ namespace Content.Server.Construction
                         return false;
                 }
 
-                // Goobstation
-                EntityUid? entWith = with == null ? null : GetEntity(with);
-                if (with != null && entWith != null)
+            if (!_actionBlocker.CanInteract(user, null)
+                || (senderSession != null && entWith == null)) // Goobstation
+            {
+                Cleanup();
+                return false;
+            }
+
+            var mapPos = _transformSystem.ToMapCoordinates(location);
+            var predicate = GetPredicate(constructionPrototype.CanBuildInImpassable, mapPos);
+
+            if (!_interactionSystem.InRangeUnobstructed(user, mapPos, predicate: predicate))
+            {
+                Cleanup();
+                return false;
+            }
+
+            if (pathFind == null)
+                throw new InvalidDataException($"Can't find path from starting node to target node in construction! Recipe: {prototypeName}");
+
+            var edge = startNode.GetEdge(pathFind[0].Name);
+
+            if(edge == null)
+                throw new InvalidDataException($"Can't find edge from starting node to the next node in pathfinding! Recipe: {prototypeName}");
+
+            if (senderSession != null) // Goobstation - don't check this for constructor machine
+            {
+                var valid = false;
+
+                if (entWith is not {Valid: true} holding) // Goobstation - don't check for constructor machine
                 {
                     // sus client can't use steel half the station away to build
                     var userPos = _transformSystem.GetMapCoordinates(user);

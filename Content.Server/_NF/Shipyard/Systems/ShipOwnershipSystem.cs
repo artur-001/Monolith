@@ -15,19 +15,10 @@ namespace Content.Server._NF.Shipyard.Systems;
 /// <summary>
 /// Manages ship ownership and handles cleanup of ships when owners are offline too long
 /// </summary>
-public sealed class ShipOwnershipSystem : EntitySystem
+public sealed partial class ShipOwnershipSystem : EntitySystem
 {
-    [Dependency] private readonly IConfigurationManager _cfg = default!;
-    [Dependency] private readonly IPlayerManager _playerManager = default!;
-    [Dependency] private readonly IGameTiming _gameTiming = default!;
-    [Dependency] private readonly StationSystem _station = default!;
-
-    private bool _autoDeleteEnabled;
-    private TimeSpan _ownerOfflineTimeout;
-    private TimeSpan _inactiveTimeout;
-    private TimeSpan _deletionGrace;
-    private TimeSpan _checkInterval;
-    private TimeSpan _nextCheckTime;
+    [Dependency] private IPlayerManager _playerManager = default!;
+    [Dependency] private IGameTiming _gameTiming = default!;
 
     public override void Initialize()
     {
