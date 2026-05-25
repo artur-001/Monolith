@@ -29,7 +29,7 @@ using Content.Shared.Chat;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Players.RateLimiting;
 using Content.Client._Mono.Company; // Mono
-using Content.Client._Mono.MonoCoins; // Mono
+// using Content.Client._Mono.MonoCoins; // Forge-Change: MonoCoins disabled
 
 namespace Content.Client.IoC
 {

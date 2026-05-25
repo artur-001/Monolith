@@ -15,7 +15,7 @@ public sealed class ShipShieldOverlaySystem : EntitySystem
     public override void Initialize()
     {
         base.Initialize();
-        _overlayManager.AddOverlay(new ShipShieldOverlay(EntityManager, _prototypeManager, _resourceCache, _mapManager)); // Forge-Change
+        _overlayManager.AddOverlay(new ShipShieldOverlay(EntityManager, _prototypeManager, _resourceCache)); // Forge-Change
     }
 
     public override void Shutdown()

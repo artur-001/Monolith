@@ -3,7 +3,6 @@
  * Copyright (c) 2024 New Frontiers Contributors
  * See AGPLv3.txt for details.
  */
-using Content.Server._Mono.MonoCoins;
 using Content.Server.Popups;
 using Content.Server.Stack;
 using Content.Shared._NF.Bank.BUI;
@@ -122,8 +121,9 @@ public sealed partial class BankSystem
         }
 
         state.Balance = bank.Balance;
-        if (_playerManager.TryGetSessionByEntity(player, out var session))
-            state.Savings = _coins.GetMonoCoinsBalance(session.UserId) ?? 0;
+        // Forge-Change: MonoCoins disabled.
+        // if (_playerManager.TryGetSessionByEntity(player, out var session))
+        //     state.Savings = _coins.GetMonoCoinsBalance(session.UserId) ?? 0;
 
         // validating the cash slot was setup correctly in the yaml
         if (component.CashSlot.ContainerSlot is not BaseContainer cashSlot)
@@ -183,8 +183,9 @@ public sealed partial class BankSystem
 
         state.Deposit = 0;
         state.Balance = bank.Balance;
-        if (session != null)
-            state.Savings = _coins.GetMonoCoinsBalance(session.UserId) ?? 0;
+        // Forge-Change: MonoCoins disabled.
+        // if (session != null)
+        //     state.Savings = _coins.GetMonoCoinsBalance(session.UserId) ?? 0;
 
         // yeet and delete the stack in the cash slot after success
         _containerSystem.CleanContainer(cashSlot);
@@ -284,8 +285,12 @@ public sealed partial class BankSystem
 
     private long GetEntSavings(EntityUid uid)
     {
+        // Forge-Change: MonoCoins disabled.
+        return 0;
+        /*
         if (_playerManager.TryGetSessionByEntity(uid, out var session))
             return _coins.GetMonoCoinsBalance(session.UserId) ?? 0;
         return 0;
+        */
     }
 }

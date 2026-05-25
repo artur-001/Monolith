@@ -453,7 +453,6 @@ namespace Content.Server.Decals
                 _dirtyChunks.Clear();
                 return;
             }
-            */
 
             // PVS-enabled path: ship per-player chunk deltas via DecalChunkUpdateEvent.
             _sessions.Clear();

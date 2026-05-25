@@ -32,7 +32,7 @@ public sealed partial class BankATMMenu : FancyWindow
     public void SetBalance(int amount, long savings)
     {
         BalanceLabel.Text = BankSystemExtensions.ToSpesoString(amount);
-        SavingsLabel.Text = BankSystemExtensions.ToSpesoString(savings);
+        SavingsLabel.Text = BankSystemExtensions.ToSpesoString(savings); // hidden in UI — Forge-Change: MonoCoins disabled
         BankAmount = amount;
     }
 
@@ -41,9 +41,14 @@ public sealed partial class BankATMMenu : FancyWindow
         DepositButton.Disabled = amount <= 0;
         if (amount >= 0) // Valid
         {
+            // Forge-Change: MonoCoins disabled — full deposit to sector bank.
+            DepositLabel.Text = BankSystemExtensions.ToSpesoString(amount);
+            DepositLabelUT.Text = BankSystemExtensions.ToSpesoString(0);
+            /*
             _bank.GetTaxedDepositAmount(amount, BankAmount, out var afterTax, out var taxedAway);
             DepositLabel.Text = BankSystemExtensions.ToSpesoString(afterTax);
             DepositLabelUT.Text = BankSystemExtensions.ToSpesoString(taxedAway);
+            */
         }
         else
         {

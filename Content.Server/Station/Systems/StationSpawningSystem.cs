@@ -27,7 +27,7 @@ using Robust.Shared.Random;
 using Robust.Shared.Utility;
 using Content.Server.Spawners.Components;
 using Content.Shared._NF.Bank.Components; // DeltaV
-using Content.Server._Mono.MonoCoins; // Mono
+// using Content.Server._Mono.MonoCoins; // Forge-Change: MonoCoins disabled
 using Content.Server._NF.Bank; // Frontier
 using Content.Server.Preferences.Managers; // Frontier
 using System.Linq;
@@ -59,7 +59,7 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
     [Dependency] private readonly InternalEncryptionKeySpawner _internalEncryption = default!; // Goobstation
 
     [Dependency] private readonly BankSystem _bank = default!; // Frontier
-    [Dependency] private readonly MonoCoinsManager _coins = default!; // Mono
+    // [Dependency] private readonly MonoCoinsManager _coins = default!; // Forge-Change: MonoCoins disabled
     private bool _randomizeCharacters;
 
     /// <inheritdoc/>
@@ -190,7 +190,8 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
             /// Frontier: overwriting EquipRoleLoadout
             //EquipRoleLoadout(entity.Value, loadout, roleProto!);
             long initialBankBalance = profile!.BankBalance; //Frontier
-            initialBankBalance += session == null ? 0l : _coins.GetMonoCoinsBalance(session.UserId) ?? 0l;
+            // Forge-Change: MonoCoins disabled.
+            // initialBankBalance += session == null ? 0l : _coins.GetMonoCoinsBalance(session.UserId) ?? 0l;
             var bankBalance = initialBankBalance; //Frontier
             bool hasBalance = false; // Frontier
 
@@ -293,8 +294,8 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
 
             if (hasBalance)
             {
-                // also spend long-term currency on this
-                _bank.TryBankWithdraw(session!, prefs!, profile!, (int)(initialBankBalance - bankBalance), out var newBalance, true);
+                // Forge-Change: MonoCoins disabled — spendLongTerm=false.
+                _bank.TryBankWithdraw(session!, prefs!, profile!, (int)(initialBankBalance - bankBalance), out var newBalance, false);
             }
             /// End Frontier: overwriting EquipRoleLoadout
         }

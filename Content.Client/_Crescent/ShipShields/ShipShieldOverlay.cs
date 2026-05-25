@@ -1,17 +1,14 @@
-using Content.Client.Resources;
 using Content.Shared._Crescent.ShipShields;
-using Content.Shared.Shuttles.Components;
-using Robust.Client.Graphics;
-using Robust.Client.Physics;
 using Robust.Client.ResourceManagement;
+using Robust.Client.Graphics;
 using Robust.Shared.Enums;
-using Robust.Shared.Map;
-using Robust.Shared.Map.Components;
+using Robust.Shared.Physics.Systems;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Collision.Shapes;
-using Robust.Shared.Physics.Systems;
-using Robust.Shared.Prototypes;
 using System.Numerics;
+using Content.Client.Resources;
+using Robust.Client.Physics;
+using Robust.Shared.Prototypes;
 using System.Runtime.InteropServices;
 using Robust.Client.GameObjects;
 
@@ -21,46 +18,42 @@ public sealed class ShipShieldOverlay : Overlay
 {
     private readonly FixtureSystem _fixture;
     private readonly SharedPhysicsSystem _physics;
-    private readonly IMapManager _mapManager;
+    private readonly IResourceCache _resourceCache;
     private readonly IEntityManager _entManager;
     private readonly ShaderInstance _unshadedShader;
-    private readonly List<DrawVertexUV2D> _verts = new(128);
+    private readonly List<DrawVertexUV2D> _verts = new(128); // Mono
     private readonly Texture _shieldTexture;
-    // Forge-Change: grids already drawn from a PVS-local bubble entity this frame.
-    private readonly HashSet<EntityUid> _drawnGrids = new();
-    private List<Entity<MapGridComponent>> _gridBuffer = new();
 
     public override OverlaySpace Space => OverlaySpace.WorldSpaceBelowWorld;
 
-    public ShipShieldOverlay(
-        IEntityManager entityManager,
-        IPrototypeManager prototypeManager,
-        IResourceCache resourceCache,
-        IMapManager mapManager)
+    public ShipShieldOverlay(IEntityManager entityManager, IPrototypeManager prototypeManager, IResourceCache resourceCache)
     {
+        _resourceCache = resourceCache;
         _entManager = entityManager;
-        _mapManager = mapManager;
         _fixture = _entManager.EntitySysManager.GetEntitySystem<FixtureSystem>();
         _physics = _entManager.EntitySysManager.GetEntitySystem<Robust.Client.Physics.PhysicsSystem>();
-        _shieldTexture = resourceCache.GetTexture("/Textures/_Crescent/ShipShields/shieldtex.png");
+        _shieldTexture = _resourceCache.GetTexture("/Textures/_Crescent/ShipShields/shieldtex.png");
+
         _unshadedShader = prototypeManager.Index<ShaderPrototype>("unshaded").Instance();
+
         ZIndex = 8;
     }
 
     protected override void Draw(in OverlayDrawArgs args)
     {
         var handle = args.WorldHandle;
-        handle.UseShader(_unshadedShader);
-        _drawnGrids.Clear();
 
-        // Forge-Change-Start: Pass 1 — textured bubble when streamed via PVS (close range).
+        handle.UseShader(_unshadedShader);
+
         var enumerator = _entManager.AllEntityQueryEnumerator<ShipShieldVisualsComponent, FixturesComponent, TransformComponent>();
         while (enumerator.MoveNext(out var uid, out var visuals, out var fixtures, out var xform))
         {
+
             if (xform.MapID != args.MapId)
                 continue;
 
             var fixture = _fixture.GetFixtureOrNull(uid, "shield", fixtures);
+
             if (fixture is not { Shape: ChainShape chain })
                 continue;
 
@@ -78,39 +71,9 @@ public sealed class ShipShieldOverlay : Overlay
             DrawShield(handle, chain, transform, _shieldTexture, visuals.ShieldColor, _verts);
             _verts.Clear(); // Clear for next shield - Mono
         }
-
-        // Pass 2 — draw from replicated grid snapshot when the bubble is not in client PVS (scanner range).
-        var bounds = args.WorldBounds.Enlarged(128f);
-        _gridBuffer.Clear();
-        _mapManager.FindGridsIntersecting(args.MapId, bounds, ref _gridBuffer, approx: true, includeMap: false);
-
-        foreach (var grid in _gridBuffer)
-        {
-            var gUid = grid.Owner;
-            if (_drawnGrids.Contains(gUid))
-                continue;
-
-            if (!_entManager.TryGetComponent<ShipShieldGridStateComponent>(gUid, out var shieldState)
-                || !shieldState.HasEmitter
-                || !shieldState.Online)
-            {
-                continue;
-            }
-
-            if (_entManager.HasComponent<FTLComponent>(gUid))
-                continue;
-
-            if (!_entManager.TryGetComponent<TransformComponent>(gUid, out var gridXform))
-                continue;
-
-            var outline = ShipShieldOutline.GetVertices(grid.Comp, shieldState.Padding);
-            DrawShieldOutline(handle, gUid, grid.Comp, gridXform, outline, _shieldTexture, shieldState.ShieldColor, _verts);
-            _verts.Clear();
-        }
-        // Forge-Change-End
     }
 
-    private void DrawShieldChain(
+    private void DrawShield(
         DrawingHandleWorld handle,
         ChainShape chain,
         Transform transform,
@@ -124,9 +87,10 @@ public sealed class ShipShieldOverlay : Overlay
 
         // Mono Update: Just use transform.Position for world position already for corners
 
-        for (var i = 0; i < chain.Count; i++)
+        for (int i = 1; i < chain.Count; i++)
         {
-            var next = (i + 1) % chain.Count;
+            // top left corner
+            var leftVertex = VertexToWorldPos(chain.Vertices[i - 1], transform);
 
             // top right corner
             var rightVertex = VertexToWorldPos(chain.Vertices[i], transform);
@@ -137,10 +101,14 @@ public sealed class ShipShieldOverlay : Overlay
             // bottom right corner
             var rightCorner = Corner(rightVertex, transform);
 
+            // Assemble 2 triangles.
+
+            // Triangle one: top left, top right, bottom left
             verts.Add(new DrawVertexUV2D(leftVertex, new Vector2(0, 1)));
             verts.Add(new DrawVertexUV2D(rightVertex, new Vector2(1, 1)));
             verts.Add(new DrawVertexUV2D(leftCorner, Vector2.Zero));
 
+            // Triangle two: top right, bottom left, bottom right
             verts.Add(new DrawVertexUV2D(rightVertex, new Vector2(1, 1)));
             verts.Add(new DrawVertexUV2D(leftCorner, Vector2.Zero));
             verts.Add(new DrawVertexUV2D(rightCorner, new Vector2(1, 0)));

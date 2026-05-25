@@ -1,2 +1,3 @@
 frontier-loadout-cost = Total Loadout Cost: {$cost}
-frontier-loadout-balance = Available Balance: {$savings} + {$balance}
+# Forge-Change: MonoCoins disabled — savings removed from balance display.
+frontier-loadout-balance = Available Balance: {$balance}

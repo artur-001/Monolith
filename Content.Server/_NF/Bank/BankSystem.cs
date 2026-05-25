@@ -1,5 +1,5 @@
 using System.Threading;
-using Content.Server._Mono.MonoCoins;
+// using Content.Server._Mono.MonoCoins; // Forge-Change: MonoCoins disabled
 using Content.Server.Database;
 using Content.Server.Preferences.Managers;
 using Content.Server.GameTicking;
@@ -22,7 +22,7 @@ public sealed partial class BankSystem : SharedBankSystem
     [Dependency] private readonly IServerPreferencesManager _prefsManager = default!;
     [Dependency] private readonly ISharedPlayerManager _playerManager = default!;
     [Dependency] private readonly IServerDbManager _db = default!;
-    [Dependency] private readonly MonoCoinsManager _coins = default!;
+    // [Dependency] private readonly MonoCoinsManager _coins = default!; // Forge-Change: MonoCoins disabled
 
     private ISawmill _log = default!;
 
@@ -156,8 +156,10 @@ public sealed partial class BankSystem : SharedBankSystem
             return false;
         }
 
+        // Forge-Change: MonoCoins disabled — full deposit goes to sector bank.
         int toSector = amount;
         int toLongTerm = 0;
+        /*
         if (tax)
         {
             GetTaxedDepositAmount(amount, bank.Balance, out var afterTax, out var taxedAway);
@@ -165,6 +167,7 @@ public sealed partial class BankSystem : SharedBankSystem
             toLongTerm = taxedAway;
             _ = _coins.AddMonoCoinsAsync(session.UserId, taxedAway);
         }
+        */
 
         if (TryBankDeposit(session, prefs, profile, toSector, out var newBalance))
         {
@@ -200,11 +203,14 @@ public sealed partial class BankSystem : SharedBankSystem
         int balance = profile.BankBalance;
         long totalBalance = balance;
 
+        // Forge-Change: MonoCoins disabled.
+        /*
         if (spendLongTerm)
         {
             var longTermBank = _coins.GetMonoCoinsBalance(session.UserId);
             totalBalance += longTermBank ?? 0l;
         }
+        */
 
         if (totalBalance < amount)
         {
@@ -213,6 +219,8 @@ public sealed partial class BankSystem : SharedBankSystem
         }
 
         int leftoverAmount = amount;
+        // Forge-Change: MonoCoins disabled.
+        /*
         if (spendLongTerm)
         {
             var longTermBalance = totalBalance - balance;
@@ -220,6 +228,7 @@ public sealed partial class BankSystem : SharedBankSystem
             leftoverAmount -= toSpend;
             _ = _coins.AddMonoCoinsAsync(session.UserId, -toSpend);
         }
+        */
         balance -= leftoverAmount;
 
         var newProfile = profile.WithBankBalance(balance);

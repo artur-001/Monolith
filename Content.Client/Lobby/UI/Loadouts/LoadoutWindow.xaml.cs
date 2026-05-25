@@ -10,7 +10,7 @@ using Robust.Client.UserInterface.XAML;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
-using Content.Client._Mono.MonoCoins; // Mono
+// using Content.Client._Mono.MonoCoins; // Forge-Change: MonoCoins disabled
 using Content.Shared._NF.Bank; // Frontier
 
 namespace Content.Client.Lobby.UI.Loadouts;
@@ -18,7 +18,7 @@ namespace Content.Client.Lobby.UI.Loadouts;
 [GenerateTypedNameReferences]
 public sealed partial class LoadoutWindow : FancyWindow
 {
-    [Dependency] private readonly MonoCoinsManager _coins = default!; // Mono
+    // [Dependency] private readonly MonoCoinsManager _coins = default!; // Forge-Change: MonoCoins disabled
 
     public event Action<string>? OnNameChanged;
     public event Action<ProtoId<LoadoutGroupPrototype>, ProtoId<LoadoutPrototype>>? OnLoadoutPressed;
@@ -90,12 +90,16 @@ public sealed partial class LoadoutWindow : FancyWindow
         //Frontier - we inject our label here but it needs recalculating every time a new item is selected,
         //so we add a new method and call it there too.
         CalculateLoadoutCost(loadout, collection);
-        var accountBalance = _coins.GetLastKnownBalance();
-        // Frontier - update bank balance label text - value should not change.
+        // Forge-Change: MonoCoins disabled — show character bank balance only.
         Balance.Margin = new Thickness(5, 2, 5, 5);
+        Balance.Text = Loc.GetString("frontier-loadout-balance",
+            ("balance", BankSystemExtensions.ToSpesoString(Profile.BankBalance)));
+        /*
+        var accountBalance = _coins.GetLastKnownBalance();
         Balance.Text = Loc.GetString("frontier-loadout-balance",
             ("balance", BankSystemExtensions.ToSpesoString(Profile.BankBalance)),
             ("savings", BankSystemExtensions.ToSpesoString(accountBalance)));
+        */
     }
 
     public void RefreshLoadouts(RoleLoadout loadout, ICommonSession session, IDependencyCollection collection)
