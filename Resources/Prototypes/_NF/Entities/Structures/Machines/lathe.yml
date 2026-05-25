@@ -370,6 +370,7 @@
     - PowerCellsStatic
     dynamicPacks:
     - NFBlueprints
+    - ForgeBlueprints # Forge-change
   - type: RequireProjectileTarget
 
 - type: entity
