@@ -352,6 +352,7 @@
     - EngineeringBoardsGoob #Goob Factorio port
     - NanotrasenCircuitBoard # Forge-change
     - ReactorCircuitboards # FH edit
+    - BsEnergyCircuitsPack # Forge-Change
   - type: MaterialStorage
     whitelist:
       tags:
