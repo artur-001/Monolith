@@ -215,7 +215,7 @@ public sealed class BsTransmitterEnergySystem : EntitySystem
         bsTransmitterEnergyComponent.Receivers.Remove(receiverUid);
     }
 
-    private float GetNetworkDrawRate(EntityUid transmitterUid)
+    /*private float GetNetworkDrawRate(EntityUid transmitterUid)
     {
         if (!TryComp<NodeContainerComponent>(transmitterUid, out var nodeContainerComponent) ||
             !nodeContainerComponent.Nodes.TryGetValue("hvPower", out var node) || node.NodeGroup is not PowerNet powerNet)
@@ -231,6 +231,18 @@ public sealed class BsTransmitterEnergySystem : EntitySystem
         var drawRate = powerNet.Consumers.Sum(powerConsumerComponent => powerConsumerComponent.DrawRate);
 
         return drawRate + chargers;
+    }*/
+
+    private (float, float)? GetNetworkData(EntityUid transmitterUid)
+    {
+        if (!TryComp<PowerConsumerComponent>(transmitterUid, out var powerConsumerComponent))
+            return null;
+
+        (float, float)? networkStats = null;
+        if (powerConsumerComponent.Net is { IsConnectedNetwork: true } net)
+            networkStats = (net.NetworkNode.LastCombinedLoad, net.NetworkNode.LastCombinedSupply);
+
+        return networkStats;
     }
 
     private void DisconnectAllReceivers(BsTransmitterEnergyComponent transmitterComp)
@@ -290,7 +302,6 @@ public sealed class BsTransmitterEnergySystem : EntitySystem
             !TryComp<PowerConsumerComponent>(transmitterUid, out var powerConsumerComponent))
             return;
 
-        var drawRate = GetNetworkDrawRate(transmitterUid);
         var state = new BsTransmitterInterfaceStateMessage
         {
             StepSize = bsTransmitterEnergyComponent.StepSize,
@@ -304,7 +315,7 @@ public sealed class BsTransmitterEnergySystem : EntitySystem
             Money = (int)bsTransmitterEnergyComponent.Money,
             PowerConsumer = (int)powerConsumerComponent.ReceivedPower,
             AvailablePower = bsTransmitterEnergyComponent.AvailablePower,
-            DrawRate = (int)drawRate,
+            NetworkStats = GetNetworkData(transmitterUid),
         };
 
         _uiSystem.SetUiState(transmitterUid, BsEnergyUiKey.TransmitterKey, state);

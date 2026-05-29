@@ -44,9 +44,15 @@ ui-bs-energy-power-mvt = мВт
 ui-bs-energy-power-kvt = кВт
 ui-bs-energy-time-minute = минут
 ui-bs-energy-time-hour = ч
+ui-bs-energy-network-value = { POWERWATTS($watts) }
+ui-bs-energy-network-stats-value = { POWERWATTS($supply) } / { POWERWATTS($load) }
+ui-bs-energy-unanchored = Не закреплено
+ui-bs-energy-step-increase = +{ POWERWATTS($watts) }
+ui-bs-energy-step-decrease = -{ POWERWATTS($watts) }
+
 
 ui-bs-receiver-title = Блюспейс приёмник энергии
-ui-bs-receiver-price = Цена:
+ui-bs-receiver-price-label = Цена:
 ui-bs-receiver-settings-label = Настройка
 ui-bs-receiver-enable-button = Вкл/выкл
 ui-bs-receiver-received-power-label = Получаемая мощность:
@@ -56,6 +62,7 @@ ui-bs-receiver-money-lost-label = Расход:
 ui-bs-receiver-money-label = Баланс:
 ui-bs-receiver-withdraw-button = Вывести
 ui-bs-receiver-transmitters-label = Доступные продавцы энергии
+ui-bs-receiver-draw-rate-label = Нагрузка сети:
 
 ui-bs-transmitter-title = Блюспейс передатчик энергии
 ui-bs-transmitter-info-label = Информация
@@ -65,7 +72,7 @@ ui-bs-transmitter-draw-rate-label = Нагрузка сети:
 ui-bs-transmitter-connected-devices-label = Количество подключённых:
 ui-bs-transmitter-expected-income-label = Ожидаемый доход:
 ui-bs-transmitter-bank-label = Банк:
-ui-bs-transmitter-total-money-label = Баланс:
+ui-bs-transmitter-money-label = Баланс:
 ui-bs-transmitter-withdraw-button = Вывести средства
 ui-bs-transmitter-settings-label = Настройка:
 ui-bs-transmitter-target-power-label = Целевая мощность:

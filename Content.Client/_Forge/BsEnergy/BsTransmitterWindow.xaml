@@ -20,7 +20,7 @@
                         <BoxContainer Orientation="Vertical" Margin="20 0 0 0">
                             <BoxContainer Orientation="Horizontal">
                                 <Label Text="{Loc 'ui-bs-transmitter-info-label'}" HorizontalExpand="True" VerticalAlignment="Center" Margin="30 0 0 0" />
-                                <Button Name="EnableButton" Text="Вкл / Выкл" ToggleMode="True" HorizontalAlignment="Right" />
+                                <Button Name="EnableButton" Text="{Loc 'ui-bs-receiver-enable-button'}" ToggleMode="True" HorizontalAlignment="Right" />
                             </BoxContainer>
 
                             <BoxContainer Orientation="Horizontal">
@@ -28,15 +28,15 @@
                                 <BoxContainer Orientation="Vertical" HorizontalExpand="True">
                                     <BoxContainer Orientation="Horizontal" Margin="30 0 0 0">
                                         <Label Text="{Loc 'ui-bs-transmitter-current-supply-label'}" HorizontalExpand="True" />
-                                        <Label Name="CurrentSupply" Text="0 кВт" />
+                                        <Label Name="CurrentSupplyLabel" />
                                     </BoxContainer>
                                     <BoxContainer Orientation="Horizontal" Margin="30 0 0 0">
                                         <Label Text="{Loc 'ui-bs-transmitter-power-consumer-label'}" HorizontalExpand="True" />
-                                        <Label Name="PowerConsumerLabel" Text="0 кВт" />
+                                        <Label Name="PowerConsumerLabel" />
                                     </BoxContainer>
                                     <BoxContainer Orientation="Horizontal" Margin="30 0 0 0">
                                         <Label Text="{Loc 'ui-bs-transmitter-draw-rate-label'}" HorizontalExpand="True" />
-                                        <Label Name="DrawRate" Text="0 кВт" />
+                                        <Label Name="NetworkStatsLabel" />
                                     </BoxContainer>
                                     <BoxContainer Orientation="Horizontal" Margin="30 0 0 0">
                                         <Label Text="{Loc 'ui-bs-transmitter-connected-devices-label'}" HorizontalExpand="True" />
@@ -44,7 +44,7 @@
                                     </BoxContainer>
                                     <BoxContainer Orientation="Horizontal" Margin="30 0 0 0">
                                         <Label Text="{Loc 'ui-bs-transmitter-expected-income-label'}" HorizontalExpand="True" />
-                                        <Label Name="ExpectedIncomeLabel" Text="0 мин." />
+                                        <Label Name="ExpectedIncomeLabel" />
                                     </BoxContainer>
                                 </BoxContainer>
                             </BoxContainer>
@@ -56,7 +56,7 @@
                             <BoxContainer Orientation="Vertical">
                                 <Label Text="{Loc 'ui-bs-transmitter-bank-label'}" HorizontalAlignment="Left" />
                                 <BoxContainer Orientation="Vertical" Margin="20 20 20 12" VerticalExpand="True">
-                                    <Label Name="TotalMoney" Text="{Loc 'ui-bs-transmitter-total-money-label'}" HorizontalAlignment="Center" VerticalAlignment="Top" VerticalExpand="True"/>
+                                    <Label Name="TotalMoneyLabel" Text="{Loc 'ui-bs-transmitter-money-label'}" HorizontalAlignment="Center" VerticalAlignment="Top" VerticalExpand="True"/>
                                     <Button Name="WithdrawButton" Text="{Loc 'ui-bs-transmitter-withdraw-button'}" HorizontalExpand="True" VerticalAlignment="Bottom" VerticalExpand="True" />
                                 </BoxContainer>
                             </BoxContainer>
@@ -67,18 +67,18 @@
                                 <Label Text="{Loc 'ui-bs-transmitter-settings-label'}" HorizontalAlignment="Left" />
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="{Loc 'ui-bs-transmitter-target-power-label'}" HorizontalAlignment="Center" />
-                                    <Label Name="TargetPowerLabel" Text="0 кВт" HorizontalAlignment="Center" />
+                                    <Label Name="TargetPowerLabel" HorizontalAlignment="Right" HorizontalExpand="True" />
                                 </BoxContainer>
 
                                 <BoxContainer Orientation="Horizontal">
-                                    <Button Name="RequestedPowerDecrease" HorizontalExpand="True" />
-                                    <Button Name="RequestedPowerIncrease" HorizontalExpand="True" />
+                                    <Button Name="RequestedPowerDecreaseButton" HorizontalExpand="True" />
+                                    <Button Name="RequestedPowerIncreaseButton" HorizontalExpand="True" />
                                 </BoxContainer>
 
                                 <Label Text="{Loc 'ui-bs-transmitter-price-label'}" HorizontalAlignment="Left" Margin="10 0 0 0" />
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="$" />
-                                    <SpinBox Name="Price" HorizontalExpand="True" />
+                                    <SpinBox Name="PriceSpinBox" HorizontalExpand="True" />
                                     <Label Text="{Loc 'ui-bs-transmitter-minute-label'}" />
                                 </BoxContainer>
                                 <Label Text="{Loc 'ui-bs-transmitter-warning-label'}" FontColorOverride="#900020" HorizontalAlignment="Center" StyleClasses="WindowFooterText"/>

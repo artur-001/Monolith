@@ -12,11 +12,10 @@ public sealed partial class BsTransmitterWindow : FancyWindow
     [Dependency] private readonly IEntityManager _entityManager = default!;
 
     private readonly string _minuteLocStr = Loc.GetString("ui-bs-energy-time-minute");
-    private readonly string _balanceLocStr = Loc.GetString("ui-bs-receiver-money-label");
+    private readonly string _balanceLocStr = Loc.GetString("ui-bs-transmitter-money-label");
     private int _maxValue;
     private int _stepSize;
     private int _power;
-
 
     public event Action<int>? OnChangeTargetPower;
     public event Action<int>? OnPriceChanged;
@@ -28,12 +27,18 @@ public sealed partial class BsTransmitterWindow : FancyWindow
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
 
-        Price.IsValid = val => val >= 0;
-        Price.LineEditControl.PlaceHolder = $"{BsEnergySettings.PassiveIncome}";
+        CurrentSupplyLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", 0));
+        PowerConsumerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", 0));
+        TargetPowerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", 0));
+        NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-unanchored");
+        ExpectedIncomeLabel.Text = $"$0 / {_minuteLocStr}";
+
+        PriceSpinBox.IsValid = val => val >= 0;
+        PriceSpinBox.LineEditControl.PlaceHolder = $"{BsEnergySettings.PassiveIncome}";
 
         EnableButton.OnPressed += args => OnEnableToggle?.Invoke(args);
         WithdrawButton.OnPressed += _ => OnWithdraw?.Invoke();
-        Price.ValueChanged += args => OnPriceChanged?.Invoke(args.Value);
+        PriceSpinBox.ValueChanged += args => OnPriceChanged?.Invoke(args.Value);
     }
 
     public void SetEntity(EntityUid uid)
@@ -49,25 +54,37 @@ public sealed partial class BsTransmitterWindow : FancyWindow
         if (_stepSize == 0 && stateMessage.MaxValue > 0)
         {
             _stepSize = stateMessage.StepSize;
-            RequestedPowerIncrease.Text = $"+{BsEnergyUtils.GetPowerText(_stepSize)}";
-            RequestedPowerDecrease.Text = $"-{BsEnergyUtils.GetPowerText(_stepSize)}";
+            RequestedPowerIncreaseButton.Text = Loc.GetString("ui-bs-energy-step-increase", ("watts", _stepSize));
+            RequestedPowerDecreaseButton.Text = Loc.GetString("ui-bs-energy-step-decrease", ("watts", _stepSize));
 
-            RequestedPowerIncrease.OnPressed += _ => RequestedPowerChanged(_stepSize);
-            RequestedPowerDecrease.OnPressed += _ => RequestedPowerChanged(-1 * _stepSize);
+            RequestedPowerIncreaseButton.OnPressed += _ => RequestedPowerChanged(_stepSize);
+            RequestedPowerDecreaseButton.OnPressed += _ => RequestedPowerChanged(-1 * _stepSize);
         }
 
-        ExpectedIncomeLabel.Text = $"${stateMessage.Income:F0} / {_minuteLocStr}";
-        PowerConsumerLabel.Text = BsEnergyUtils.GetPowerText(stateMessage.PowerConsumer);
-        TotalMoney.Text = $"{_balanceLocStr} ${stateMessage.Money:F0}";
-        ConnectedDevicesLabel.Text = $"{stateMessage.ConnectedCount} / {stateMessage.MaxConnected}";
         _power = stateMessage.TargetPower;
-        TargetPowerLabel.Text = BsEnergyUtils.GetPowerText(stateMessage.TargetPower);
         EnableButton.Pressed = stateMessage.Enabled;
-        CurrentSupply.Text = BsEnergyUtils.GetPowerText(stateMessage.AvailablePower);
-        DrawRate.Text = BsEnergyUtils.GetPowerText(stateMessage.DrawRate);
+        ExpectedIncomeLabel.Text = $"${stateMessage.Income:F0} / {_minuteLocStr}";
+        ConnectedDevicesLabel.Text = $"{stateMessage.ConnectedCount} / {stateMessage.MaxConnected}";
+        TotalMoneyLabel.Text = $"{_balanceLocStr} ${stateMessage.Money:F0}";
+        PowerConsumerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", stateMessage.PowerConsumer));
+        TargetPowerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", stateMessage.TargetPower));
+        CurrentSupplyLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", stateMessage.AvailablePower));
 
-        if (!Price.LineEditControl.HasKeyboardFocus())
-            Price.OverrideValue(stateMessage.Price);
+        if (stateMessage.NetworkStats is { } netStats)
+        {
+            NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-network-stats-value", ("load", netStats.Load), ("supply", netStats.Supply));
+
+            var good = netStats.Load <= netStats.Supply;
+            NetworkStatsLabel.SetOnlyStyleClass(good ? "Good" : "Caution");
+        }
+        else
+        {
+            NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-unanchored");
+            NetworkStatsLabel.StyleClasses.Clear();
+        }
+
+        if (!PriceSpinBox.LineEditControl.HasKeyboardFocus())
+            PriceSpinBox.OverrideValue(stateMessage.Price);
     }
 
     private void RequestedPowerChanged(int watts)

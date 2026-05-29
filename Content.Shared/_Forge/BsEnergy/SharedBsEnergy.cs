@@ -59,6 +59,7 @@ public sealed class BsReceiverInterfaceStateMessage : BoundUserInterfaceState
     public int RequestedPower;
     public int Money;
     public int ReceivedPower;
+    public (float Load, float Supply)? NetworkStats;
     public NetEntity ConnectedTransmitter;
     public Dictionary<NetEntity, UpdateTransmitterStateData> TransmittersData = new();
 }
@@ -77,5 +78,5 @@ public sealed class BsTransmitterInterfaceStateMessage : BoundUserInterfaceState
     public int Money;
     public int PowerConsumer;
     public int AvailablePower;
-    public int DrawRate;
+    public (float Load, float Supply)? NetworkStats;
 }

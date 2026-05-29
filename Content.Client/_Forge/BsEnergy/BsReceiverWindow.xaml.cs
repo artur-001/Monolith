@@ -16,7 +16,7 @@ public sealed partial class BsReceiverWindow : FancyWindow
     private readonly string _hourLocStr = Loc.GetString("ui-bs-energy-time-hour");
     private readonly string _availablePowerLocStr = Loc.GetString("ui-bs-transmitter-current-supply-label");
     private readonly string _kWLocStr = Loc.GetString("ui-bs-energy-power-kvt");
-    private readonly string _priceLocStr = Loc.GetString("ui-bs-receiver-price");
+    private readonly string _priceLocStr = Loc.GetString("ui-bs-receiver-price-label");
     private const int KvtConst = BsEnergySettings.KvtConst;
     private int _stepSize;
     private int _maxValue;
@@ -42,6 +42,12 @@ public sealed partial class BsReceiverWindow : FancyWindow
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
 
+        ReceivedPowerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", 0));
+        NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-unanchored");
+        MoneyTimeLabel.Text = $"{float.PositiveInfinity} {_minuteLocStr}";
+        MoneyLostLabel.Text = $"$0 / {_minuteLocStr}";
+        MoneyLabel.Text = "$0";
+
         WithdrawButton.OnPressed += _ => OnWithdraw?.Invoke();
         EnableButton.OnPressed += args => OnEnableToggle?.Invoke(args);
     }
@@ -59,43 +65,58 @@ public sealed partial class BsReceiverWindow : FancyWindow
         if (_stepSize == 0 && stateMessage.MaxValue > 0)
         {
             _stepSize = stateMessage.StepSize;
-            RequestedPowerIncrease.Text = $"+{BsEnergyUtils.GetPowerText(_stepSize)}";
-            RequestedPowerDecrease.Text = $"-{BsEnergyUtils.GetPowerText(_stepSize)}";
+            RequestedPowerIncreaseButton.Text = Loc.GetString("ui-bs-energy-step-increase", ("watts", _stepSize));
+            RequestedPowerDecreaseButton.Text = Loc.GetString("ui-bs-energy-step-decrease", ("watts", _stepSize));
 
-            RequestedPowerIncrease.OnPressed += _ => RequestedPowerChanged(_stepSize);
-            RequestedPowerDecrease.OnPressed += _ => RequestedPowerChanged(-1 * _stepSize);
+            RequestedPowerIncreaseButton.OnPressed += _ => RequestedPowerChanged(_stepSize);
+            RequestedPowerDecreaseButton.OnPressed += _ => RequestedPowerChanged(-1 * _stepSize);
         }
 
         MoneyLabel.Text = $"${stateMessage.Money:F0}";
-        ReceivedPowerLabel.Text = BsEnergyUtils.GetPowerText(stateMessage.ReceivedPower);
+        ReceivedPowerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", stateMessage.ReceivedPower));
+
         if (stateMessage.TransmittersData.TryGetValue(stateMessage.ConnectedTransmitter, out var serversData))
         {
             var moneyLost = (float)stateMessage.ReceivedPower / KvtConst * serversData.Price;
-            MoneyLost.Text = $"${moneyLost:F0} / {_minuteLocStr}";
+            MoneyLostLabel.Text = $"${moneyLost:F0} / {_minuteLocStr}";
             var minutes = (double)stateMessage.Money / moneyLost;
             if (double.IsFinite(minutes))
             {
                 var time = TimeSpan.FromMinutes(minutes);
                 var hours = (int)time.TotalHours;
                 var hoursText = hours > 0 ? $"{hours} {_hourLocStr}. " : string.Empty;
-                MoneyTime.Text = $"~{hoursText}{time.Minutes} {_minuteLocStr}";
+                MoneyTimeLabel.Text = $"~{hoursText}{time.Minutes} {_minuteLocStr}";
             }
             else
             {
-                MoneyTime.Text = $"{float.PositiveInfinity} {_minuteLocStr}";
+                MoneyTimeLabel.Text = $"{float.PositiveInfinity} {_minuteLocStr}";
             }
         }
         else
         {
-            MoneyLost.Text = $"$0 / {_minuteLocStr}";
-            MoneyTime.Text = $"0 {_minuteLocStr}";
+            MoneyLostLabel.Text = $"$0 / {_minuteLocStr}";
+            MoneyTimeLabel.Text = $"0 {_minuteLocStr}";
         }
 
         UpdateServersUi(stateMessage.TransmittersData, stateMessage.Enabled);
         SelectTransmitterUi(stateMessage.ConnectedTransmitter);
 
         _power = stateMessage.RequestedPower;
-        RequestedPowerLabel.Text = BsEnergyUtils.GetPowerText(stateMessage.RequestedPower);
+
+        if (stateMessage.NetworkStats is { } netStats)
+        {
+            NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-network-stats-value", ("load", netStats.Load), ("supply", netStats.Supply));
+
+            var good = netStats.Load <= netStats.Supply;
+            NetworkStatsLabel.SetOnlyStyleClass(good ? "Good" : "Caution");
+        }
+        else
+        {
+            NetworkStatsLabel.Text = Loc.GetString("ui-bs-energy-unanchored");
+            NetworkStatsLabel.StyleClasses.Clear();
+        }
+
+        RequestedPowerLabel.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", stateMessage.RequestedPower));
         EnableButton.Pressed = stateMessage.Enabled;
     }
 
@@ -119,7 +140,7 @@ public sealed partial class BsReceiverWindow : FancyWindow
             {
                 elements.Button?.Disabled = !enabled;
                 elements.GridName?.Text = value.GridTransmitterName;
-                elements.PowerValue?.Text = BsEnergyUtils.GetPowerText((int)value.TransmitterAvailablePower);
+                elements.PowerValue?.Text = Loc.GetString("ui-bs-energy-network-value", ("watts", (int)value.TransmitterAvailablePower));
                 elements.PriceValue?.Text = $"${value.Price:F0} / {_minuteLocStr}";
             }
             else
@@ -131,7 +152,7 @@ public sealed partial class BsReceiverWindow : FancyWindow
 
                 var vBoxPower = new BoxContainer { Orientation = BoxContainer.LayoutOrientation.Vertical, HorizontalExpand = true, HorizontalAlignment = HAlignment.Center, Margin = new(10,0,0,0) };
                 var powerText = new Label { Text = _availablePowerLocStr };
-                var powerValue = new Label { Text = BsEnergyUtils.GetPowerText((int)value.TransmitterAvailablePower) };
+                var powerValue = new Label { Text = Loc.GetString("ui-bs-energy-network-value", ("watts", (int)value.TransmitterAvailablePower)) };
                 vBoxPower.AddChild(powerText);
                 vBoxPower.AddChild(powerValue);
 

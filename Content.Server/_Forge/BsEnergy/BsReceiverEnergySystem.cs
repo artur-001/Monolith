@@ -1,4 +1,5 @@
-﻿using Content.Server.Stack;
+﻿using Content.Server.Power.Components;
+using Content.Server.Stack;
 using Content.Shared._Forge.BsEnergy;
 using Content.Shared.Cargo.Components;
 using Content.Shared.Coordinates;
@@ -118,6 +119,18 @@ public sealed class BsReceiverEnergySystem : EntitySystem
             _bsTransmitterEnergySystem.ReceiverDisconnect(receiverUid, bsTransmitterEnergyComponent);
     }
 
+    private (float, float)? GetNetworkData(EntityUid receiverUid)
+    {
+        if (!TryComp<PowerSupplierComponent>(receiverUid, out var powerSupplierComponent))
+            return null;
+
+        (float, float)? networkStats = null;
+        if (powerSupplierComponent.Net is { IsConnectedNetwork: true } net)
+            networkStats = (net.NetworkNode.LastCombinedLoad, net.NetworkNode.LastCombinedSupply);
+
+        return networkStats;
+    }
+
     private void UpdateUI(EntityUid receiverUid, BsReceiverEnergyComponent receiverEnergyComponent)
     {
         if (!_uiSystem.IsUiOpen(receiverUid, BsEnergyUiKey.ReceiverKey))
@@ -149,6 +162,7 @@ public sealed class BsReceiverEnergySystem : EntitySystem
             StepSize = receiverEnergyComponent.StepSize,
             MaxValue = receiverEnergyComponent.MaxValue,
             RequestedPower = receiverEnergyComponent.RequestedPower,
+            NetworkStats = GetNetworkData(receiverUid),
             Enabled = receiverEnergyComponent.Enabled,
             Money = (int)receiverEnergyComponent.Money,
             ReceivedPower = receiverEnergyComponent.ReceivedPower,

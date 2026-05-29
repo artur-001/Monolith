@@ -28,38 +28,43 @@
                         <BoxContainer Orientation="Vertical" HorizontalExpand="True" Margin="0 0 4 0">
                             <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                 <Label Text="{Loc ui-bs-receiver-received-power-label}" HorizontalAlignment="Left"/>
-                                <Label Name="ReceivedPowerLabel" Text="0 кВт" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                                <Label Name="ReceivedPowerLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                            </BoxContainer>
+
+                            <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
+                                <Label Text="{Loc 'ui-bs-receiver-draw-rate-label'}" HorizontalAlignment="Left"/>
+                                <Label Name="NetworkStatsLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
                             </BoxContainer>
 
                             <BoxContainer Orientation="Vertical" HorizontalExpand="True">
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="{Loc ui-bs-receiver-requested-power-label}" HorizontalExpand="True" HorizontalAlignment="Left"/>
-                                    <Label Name="RequestedPowerLabel" Text="0 кВт" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                                    <Label Name="RequestedPowerLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
                                 </BoxContainer>
 
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True" Margin="0 2 0 0">
-                                    <Button Name="RequestedPowerDecrease" Text="-50 кВт" HorizontalAlignment="Left"/>
-                                    <Button Name="RequestedPowerIncrease" Text="+50 кВт" Margin="4 0 0 0" HorizontalAlignment="Left"/>
+                                    <Button Name="RequestedPowerDecreaseButton" HorizontalAlignment="Left"/>
+                                    <Button Name="RequestedPowerIncreaseButton" Margin="4 0 0 0" HorizontalAlignment="Left"/>
                                 </BoxContainer>
                             </BoxContainer>
 
                             <BoxContainer Orientation="Vertical">
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="{Loc ui-bs-receiver-money-time-label}" HorizontalAlignment="Left"/>
-                                    <Label Name="MoneyTime" Text="(~0 минут)" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                                    <Label Name="MoneyTimeLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
                                 </BoxContainer>
                             </BoxContainer>
                             <BoxContainer Orientation="Vertical">
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="{Loc ui-bs-receiver-money-lost-label}" HorizontalAlignment="Left"/>
-                                    <Label Name="MoneyLost" Text="$0 / минуту" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                                    <Label Name="MoneyLostLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
                                 </BoxContainer>
                             </BoxContainer>
 
                             <BoxContainer Orientation="Vertical">
                                 <BoxContainer Orientation="Horizontal" HorizontalExpand="True">
                                     <Label Text="{Loc ui-bs-receiver-money-label}" HorizontalAlignment="Left"/>
-                                    <Label Name="MoneyLabel" Text="Баланс: 0" HorizontalExpand="True" HorizontalAlignment="Right"/>
+                                    <Label Name="MoneyLabel" HorizontalExpand="True" HorizontalAlignment="Right"/>
                                 </BoxContainer>
                                 <Button Name="WithdrawButton" Text="{Loc ui-bs-receiver-withdraw-button}" HorizontalAlignment="Left"/>
                             </BoxContainer>
